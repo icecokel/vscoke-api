@@ -25,6 +25,27 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+# VSCoke API
+
+이 프로젝트는 [VSCoke](https://github.com/icecokel/VSCoke)의 백엔드 전용 프로젝트입니다.
+VSCode와 유사한 웹 IDE 경험을 제공하기 위한 서버 측 로직과 API를 담당합니다.
+
+## 🔗 Related Project
+
+- **Frontend**: [VSCoke (Web IDE Client)](https://github.com/icecokel/VSCoke)
+
+## 🛠 Tech Stack
+
+### Framework & Runtime
+
+- **Node.js**: Server Runtime
+- **NestJS**: Main Backend Framework (TypeScript)
+
+### Database & ORM
+
+- **PostgreSQL**: Relational Database
+- **ORM**: (TypeORM 또는 Prisma 등 사용 예정, 현재는 ORM 사용 명시)
+
 ## Project setup
 
 ```bash
