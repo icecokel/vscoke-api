@@ -8,6 +8,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { ErrorMessage } from '../common/constants/message.constant';
 
 @Injectable()
 export class GoogleAuthGuard implements CanActivate {
@@ -23,7 +24,7 @@ export class GoogleAuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('No token provided');
+      throw new UnauthorizedException(ErrorMessage.AUTH.NO_TOKEN);
     }
 
     // 개발 환경 우회 로직
@@ -56,10 +57,14 @@ export class GoogleAuthGuard implements CanActivate {
       const payload = ticket.getPayload();
 
       if (!payload) {
-        throw new UnauthorizedException('Invalid token payload');
+        throw new UnauthorizedException(ErrorMessage.AUTH.INVALID_TOKEN);
       }
 
       const { email, given_name, family_name, sub } = payload;
+
+      if (!email) {
+        throw new UnauthorizedException(ErrorMessage.AUTH.EMAIL_REQUIRED);
+      }
 
       // 사용자 조회 또는 생성 (Upsert)
       let user = await this.userRepository.findOne({ where: { id: sub } });
@@ -79,8 +84,18 @@ export class GoogleAuthGuard implements CanActivate {
       request['user'] = user;
       return true;
     } catch (e) {
-      console.error(e);
-      throw new UnauthorizedException('Invalid token');
+      console.error('GoogleAuthGuard Error:', e);
+      if (e instanceof Error) {
+        console.error('Error stack:', e.stack);
+      }
+
+      if (e instanceof UnauthorizedException) {
+        throw e;
+      }
+
+      throw new UnauthorizedException(
+        `${ErrorMessage.AUTH.INVALID_TOKEN}: ${e.message}`,
+      );
     }
   }
 
