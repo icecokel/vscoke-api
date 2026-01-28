@@ -42,14 +42,14 @@ jobs:
       # 대상 디렉토리가 없으면 생성
       - name: Prepare Target Directory
         run: |
-          ssh ${{ secrets.TERMUX_HOST }} "mkdir -p ~/apps/vscoke-api"
+          ssh ${{ secrets.TERMUX_HOST }} "mkdir -p ~/projects/vscoke-api"
 
       - name: Deploy Files
         run: |
           # dist 폴더와 package.json, lock 파일 전송
-          scp -r dist package.json package-lock.json ${{ secrets.TERMUX_HOST }}:~/apps/vscoke-api/
+          scp -r dist package.json package-lock.json ${{ secrets.TERMUX_HOST }}:~/projects/vscoke-api/
 
       - name: Restart App
         run: |
           # 의존성 설치 (devDependency 제외) 및 PM2 재시작
-          ssh ${{ secrets.TERMUX_HOST }} "cd ~/apps/vscoke-api && npm ci --omit=dev --ignore-scripts && pm2 restart vscoke-api || pm2 start dist/main.js --name vscoke-api"
+          ssh ${{ secrets.TERMUX_HOST }} "cd ~/projects/vscoke-api && npm ci --omit=dev --ignore-scripts && pm2 restart vscoke-api || pm2 start dist/main.js --name vscoke-api"
