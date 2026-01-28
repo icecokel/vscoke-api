@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { GameHistory } from './entities/game-history.entity';
 import { User } from '../auth/entities/user.entity';
 import { CreateGameHistoryDto } from './dto/create-game-history.dto';
+import { GameType } from './enums/game-type.enum';
 
 @Injectable()
 export class GameService {
@@ -23,10 +24,13 @@ export class GameService {
     return this.gameHistoryRepository.save(history);
   }
 
-  async getRanking(): Promise<GameHistory[]> {
+  async getRanking(gameType?: GameType): Promise<GameHistory[]> {
     return this.gameHistoryRepository.find({
       order: {
         score: 'DESC',
+      },
+      where: {
+        gameType: gameType,
       },
       take: 10,
       relations: ['user'], // 유저 정보 포함

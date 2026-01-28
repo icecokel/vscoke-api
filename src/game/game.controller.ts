@@ -1,7 +1,16 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Query,
+} from '@nestjs/common';
 import { GameService } from './game.service';
 import { CreateGameHistoryDto } from './dto/create-game-history.dto';
 import { GoogleAuthGuard } from '../auth/google-auth.guard';
+import { GameType } from './enums/game-type.enum';
 
 @Controller('game')
 export class GameController {
@@ -17,7 +26,7 @@ export class GameController {
   }
 
   @Get('ranking')
-  async getRanking() {
-    return this.gameService.getRanking();
+  async getRanking(@Query('gameType') gameType?: GameType) {
+    return this.gameService.getRanking(gameType);
   }
 }

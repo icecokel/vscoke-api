@@ -26,6 +26,28 @@ export class GoogleAuthGuard implements CanActivate {
       throw new UnauthorizedException('No token provided');
     }
 
+    // 개발 환경 우회 로직
+    if (process.env.NODE_ENV !== 'production' && token === 'dev-token') {
+      // 더미 유저 생성 또는 조회
+      const devUserId = 'dev-user-id';
+      let user = await this.userRepository.findOne({
+        where: { id: devUserId },
+      });
+
+      if (!user) {
+        user = this.userRepository.create({
+          id: devUserId,
+          email: 'dev@example.com',
+          firstName: 'Dev',
+          lastName: 'User',
+        });
+        await this.userRepository.save(user);
+      }
+
+      request['user'] = user;
+      return true;
+    }
+
     try {
       const ticket = await this.client.verifyIdToken({
         idToken: token,

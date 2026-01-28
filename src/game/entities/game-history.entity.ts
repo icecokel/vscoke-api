@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
+import { GameType } from '../enums/game-type.enum';
 
 @Entity()
 export class GameHistory {
@@ -15,8 +16,12 @@ export class GameHistory {
   @Column()
   score: number;
 
-  @Column({ nullable: true })
-  playTime: number;
+  @Column({
+    type: 'enum',
+    enum: GameType,
+    default: GameType.BLOCK_TOWER,
+  })
+  gameType: GameType;
 
   @CreateDateColumn()
   createdAt: Date;
