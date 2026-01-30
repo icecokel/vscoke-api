@@ -7,19 +7,38 @@ import { User } from '../auth/entities/user.entity';
 import { CreateGameHistoryDto } from './dto/create-game-history.dto';
 import { GameType } from './enums/game-type.enum';
 
+const mockQueryBuilder = {
+  select: jest.fn().mockReturnThis(),
+  addSelect: jest.fn().mockReturnThis(),
+  groupBy: jest.fn().mockReturnThis(),
+  innerJoin: jest.fn().mockReturnThis(),
+  leftJoinAndSelect: jest.fn().mockReturnThis(),
+  where: jest.fn().mockReturnThis(),
+  orderBy: jest.fn().mockReturnThis(),
+  addOrderBy: jest.fn().mockReturnThis(),
+  take: jest.fn().mockReturnThis(),
+  getQuery: jest.fn().mockReturnValue('SELECT * FROM game_history'),
+  getParameters: jest.fn().mockReturnValue({}),
+  setParameters: jest.fn().mockReturnThis(),
+  getMany: jest.fn(),
+};
+
 const mockGameHistoryRepository = () => ({
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),
+  findOne: jest.fn(),
+  createQueryBuilder: jest.fn(() => mockQueryBuilder),
 });
-
-type MockRepository<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
 describe('GameService', () => {
   let service: GameService;
-  let repository: MockRepository<GameHistory>;
+  let repository: ReturnType<typeof mockGameHistoryRepository>;
 
   beforeEach(async () => {
+    // 각 테스트 전에 모든 모킹 초기화
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GameService,
@@ -31,9 +50,7 @@ describe('GameService', () => {
     }).compile();
 
     service = module.get<GameService>(GameService);
-    repository = module.get<MockRepository<GameHistory>>(
-      getRepositoryToken(GameHistory),
-    );
+    repository = module.get(getRepositoryToken(GameHistory));
   });
 
   it('should be defined', () => {
@@ -65,36 +82,69 @@ describe('GameService', () => {
   });
 
   describe('getRanking', () => {
-    it('should return top 10 game histories without filtering', async () => {
-      const mockRankings = Array(10).fill({
-        score: 100,
-        gameType: GameType.BLOCK_TOWER,
-      });
-      repository.find.mockResolvedValue(mockRankings);
+    it('유저별 최고 점수만 반환해야 함 (gameType 필터 없음)', async () => {
+      const mockUser1 = { id: 'user1', firstName: '홍길', lastName: '동' };
+      const mockUser2 = { id: 'user2', firstName: '김철', lastName: '수' };
+
+      const mockRankings = [
+        {
+          id: '1',
+          score: 200,
+          gameType: GameType.BLOCK_TOWER,
+          userId: 'user1',
+          user: mockUser1,
+          createdAt: new Date('2024-01-01'),
+        },
+        {
+          id: '2',
+          score: 150,
+          gameType: GameType.SKY_DROP,
+          userId: 'user2',
+          user: mockUser2,
+          createdAt: new Date('2024-01-02'),
+        },
+      ];
+
+      mockQueryBuilder.getMany.mockResolvedValue(mockRankings);
 
       const result = await service.getRanking();
 
-      expect(repository.find).toHaveBeenCalledWith({
-        order: { score: 'DESC' },
-        where: { gameType: undefined }, // Should allow undefined to fetch all or implementation detail
-        take: 10,
-        relations: ['user'],
-      });
+      expect(repository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'gameHistory.score',
+        'DESC',
+      );
+      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith(
+        'gameHistory.createdAt',
+        'ASC',
+      );
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
       expect(result).toEqual(mockRankings);
+      expect(result).toHaveLength(2);
     });
 
-    it('should filter ranking by gameType', async () => {
-      const mockRankings = [{ score: 200, gameType: GameType.SKY_DROP }];
-      repository.find.mockResolvedValue(mockRankings);
+    it('게임 타입별 유저 최고 점수만 필터링해야 함', async () => {
+      const mockUser = { id: 'user1', firstName: '홍길', lastName: '동' };
+      const mockRankings = [
+        {
+          id: '1',
+          score: 200,
+          gameType: GameType.SKY_DROP,
+          userId: 'user1',
+          user: mockUser,
+          createdAt: new Date('2024-01-01'),
+        },
+      ];
+
+      mockQueryBuilder.getMany.mockResolvedValue(mockRankings);
 
       const result = await service.getRanking(GameType.SKY_DROP);
 
-      expect(repository.find).toHaveBeenCalledWith({
-        order: { score: 'DESC' },
-        where: { gameType: GameType.SKY_DROP },
-        take: 10,
-        relations: ['user'],
-      });
+      expect(repository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'gameHistory.gameType = :gameType',
+        { gameType: GameType.SKY_DROP },
+      );
       expect(result).toEqual(mockRankings);
     });
   });

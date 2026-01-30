@@ -26,6 +26,9 @@ export class GameHistory {
   @CreateDateColumn()
   createdAt: Date;
 
+  @Column({ name: 'userId' })
+  userId: string;
+
   @ManyToOne(() => User)
   user: User;
 }

@@ -25,16 +25,38 @@ export class GameService {
   }
 
   async getRanking(gameType?: GameType): Promise<GameHistory[]> {
-    return this.gameHistoryRepository.find({
-      order: {
-        score: 'DESC',
-      },
-      where: {
-        gameType: gameType,
-      },
-      take: 10,
-      relations: ['user'], // 유저 정보 포함
-    });
+    // 유저별 최고 점수만 가져오기 위한 서브쿼리
+    const subQuery = this.gameHistoryRepository
+      .createQueryBuilder('gh')
+      .select('gh.userId', 'userId')
+      .addSelect('MAX(gh.score)', 'maxScore')
+      .groupBy('gh.userId');
+
+    if (gameType) {
+      subQuery.where('gh.gameType = :gameType', { gameType });
+    }
+
+    // 메인 쿼리: 서브쿼리 결과와 조인하여 최고 점수 기록만 선택
+    const query = this.gameHistoryRepository
+      .createQueryBuilder('gameHistory')
+      .innerJoin(
+        `(${subQuery.getQuery()})`,
+        'topScores',
+        'gameHistory.userId = topScores.userId AND gameHistory.score = topScores.maxScore',
+      )
+      .leftJoinAndSelect('gameHistory.user', 'user')
+      .orderBy('gameHistory.score', 'DESC')
+      .addOrderBy('gameHistory.createdAt', 'ASC') // 동점자는 먼저 달성한 사람 우선
+      .take(10);
+
+    if (gameType) {
+      query.where('gameHistory.gameType = :gameType', { gameType });
+    }
+
+    // 서브쿼리 파라미터 설정
+    query.setParameters(subQuery.getParameters());
+
+    return query.getMany();
   }
   async findHistoryById(id: string): Promise<GameHistory> {
     const history = await this.gameHistoryRepository.findOne({
