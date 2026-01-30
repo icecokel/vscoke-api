@@ -7,6 +7,7 @@ import {
   Req,
   Query,
   Param,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOkResponse } from '@nestjs/swagger';
 import { GameService } from './game.service';
@@ -55,7 +56,7 @@ export class GameController {
     description: '공유된 게임 결과 조회 (로그인 필요 없음)',
   })
   async getGameResult(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ): Promise<GameHistoryResponseDto> {
     const history = await this.gameService.findHistoryById(id);
 
