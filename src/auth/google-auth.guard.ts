@@ -84,11 +84,6 @@ export class GoogleAuthGuard implements CanActivate {
       request['user'] = user;
       return true;
     } catch (e) {
-      console.error('GoogleAuthGuard Error:', e);
-      if (e instanceof Error) {
-        console.error('Error stack:', e.stack);
-      }
-
       if (e instanceof UnauthorizedException) {
         throw e;
       }
