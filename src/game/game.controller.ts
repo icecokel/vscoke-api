@@ -7,9 +7,10 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOkResponse } from '@nestjs/swagger';
 import { GameService } from './game.service';
 import { CreateGameHistoryDto } from './dto/create-game-history.dto';
+import { GameHistoryResponseDto } from './dto/game-history-response.dto';
 import { GoogleAuthGuard } from '../auth/google-auth.guard';
 import { GameType } from './enums/game-type.enum';
 
@@ -21,11 +22,25 @@ export class GameController {
 
   @Post('result')
   @UseGuards(GoogleAuthGuard)
+  @ApiOkResponse({ type: GameHistoryResponseDto })
   async createResult(
     @Req() req: any,
     @Body() createGameHistoryDto: CreateGameHistoryDto,
-  ) {
-    return this.gameService.createHistory(req.user, createGameHistoryDto);
+  ): Promise<GameHistoryResponseDto> {
+    const history = await this.gameService.createHistory(
+      req.user,
+      createGameHistoryDto,
+    );
+
+    return {
+      id: history.id,
+      score: history.score,
+      gameType: history.gameType,
+      createdAt: history.createdAt,
+      user: {
+        displayName: `${history.user.firstName} ${history.user.lastName}`,
+      },
+    };
   }
 
   @Get('ranking')
