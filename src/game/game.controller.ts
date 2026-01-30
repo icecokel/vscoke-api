@@ -34,6 +34,13 @@ export class GameController {
       createGameHistoryDto,
     );
 
+    // 현재 등수 계산
+    const rank = await this.gameService.getUserRank(
+      req.user.id,
+      history.score,
+      history.gameType,
+    );
+
     return {
       id: history.id,
       score: history.score,
@@ -42,6 +49,7 @@ export class GameController {
       user: {
         displayName: `${history.user.firstName} ${history.user.lastName}`,
       },
+      rank,
     };
   }
 

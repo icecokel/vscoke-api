@@ -31,4 +31,12 @@ export class GameHistoryResponseDto {
 
   @ApiProperty({ description: '사용자 정보', type: GameHistoryUserDto })
   user: GameHistoryUserDto;
+
+  @ApiProperty({
+    description: '현재 등수 (1부터 시작, 랭킹 외 시 null)',
+    example: 1,
+    required: false,
+    nullable: true,
+  })
+  rank?: number | null;
 }

@@ -16,6 +16,7 @@ const mockGameService = () => ({
   createHistory: jest.fn(),
   getRanking: jest.fn(),
   findHistoryById: jest.fn(),
+  getUserRank: jest.fn(),
 });
 
 describe('GameController', () => {
@@ -74,13 +75,20 @@ describe('GameController', () => {
         user: {
           displayName: 'Gil Dong',
         },
+        rank: 1,
       };
 
       service.createHistory.mockResolvedValue(createdHistory as any);
+      service.getUserRank.mockResolvedValue(1);
 
       const result = await controller.createResult(req, dto);
 
       expect(service.createHistory).toHaveBeenCalledWith(req.user, dto);
+      expect(service.getUserRank).toHaveBeenCalledWith(
+        req.user.id,
+        dto.score,
+        dto.gameType,
+      );
       expect(result).toEqual(expectedResult);
     });
 
@@ -108,9 +116,11 @@ describe('GameController', () => {
         user: {
           displayName: 'Gil Dong',
         },
+        rank: 5,
       };
 
       service.createHistory.mockResolvedValue(createdHistory as any);
+      service.getUserRank.mockResolvedValue(5);
 
       const result = await controller.createResult(req, dto);
 
@@ -129,6 +139,7 @@ describe('GameController', () => {
       };
 
       service.createHistory.mockRejectedValue(new Error('DB Error'));
+      service.getUserRank.mockResolvedValue(1);
 
       await expect(controller.createResult(req, dto)).rejects.toThrow(
         'DB Error',
@@ -147,6 +158,7 @@ describe('GameController', () => {
       service.createHistory.mockRejectedValue(
         new BadRequestException('Invalid Score'),
       );
+      service.getUserRank.mockResolvedValue(1);
 
       await expect(controller.createResult(req, dto)).rejects.toThrow(
         BadRequestException,

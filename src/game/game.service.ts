@@ -70,4 +70,42 @@ export class GameService {
 
     return history;
   }
+
+  /**
+   * 유저의 현재 등수를 계산합니다 (해당 게임 타입 기준)
+   * @param userId 유저 ID
+   * @param score 현재 점수
+   * @param gameType 게임 타입
+   * @returns 등수 (1부터 시작)
+   */
+  async getUserRank(
+    userId: string,
+    score: number,
+    gameType: GameType,
+  ): Promise<number> {
+    // 유저별 최고 점수 서브쿼리
+    const subQuery = this.gameHistoryRepository
+      .createQueryBuilder('gh')
+      .select('gh.userId', 'userId')
+      .addSelect('MAX(gh.score)', 'maxScore')
+      .where('gh.gameType = :gameType', { gameType })
+      .groupBy('gh.userId');
+
+    // 현재 유저보다 높은 점수를 가진 유저 수 계산
+    const result = await this.gameHistoryRepository
+      .createQueryBuilder('gameHistory')
+      .select('COUNT(DISTINCT gameHistory.userId)', 'count')
+      .innerJoin(
+        `(${subQuery.getQuery()})`,
+        'topScores',
+        'gameHistory.userId = topScores.userId AND gameHistory.score = topScores.maxScore',
+      )
+      .where('gameHistory.gameType = :gameType', { gameType })
+      .andWhere('topScores.maxScore > :score', { score })
+      .setParameters({ ...subQuery.getParameters(), score, gameType })
+      .getRawOne();
+
+    // 나보다 높은 유저 수 + 1 = 내 등수
+    return parseInt(result?.count || '0', 10) + 1;
+  }
 }
