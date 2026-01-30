@@ -7,6 +7,7 @@ import {
   ExecutionContext,
   BadRequestException,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { GameHistoryResponseDto } from './dto/game-history-response.dto';
 import { GameType } from './enums/game-type.enum';
@@ -14,6 +15,7 @@ import { GameType } from './enums/game-type.enum';
 const mockGameService = () => ({
   createHistory: jest.fn(),
   getRanking: jest.fn(),
+  findHistoryById: jest.fn(),
 });
 
 describe('GameController', () => {
@@ -188,6 +190,98 @@ describe('GameController', () => {
       service.getRanking.mockResolvedValue([]);
       const result = await controller.getRanking(GameType.BLOCK_TOWER);
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('getGameResult', () => {
+    // Success Case 1
+    it('should return game result by id', async () => {
+      const id = 'test-uuid';
+      const history = {
+        id,
+        score: 100,
+        gameType: GameType.BLOCK_TOWER,
+        createdAt: new Date(),
+        user: { firstName: 'Gil', lastName: 'Dong' },
+      };
+      const expectedResult = {
+        id: history.id,
+        score: history.score,
+        gameType: history.gameType,
+        createdAt: history.createdAt,
+        user: { displayName: 'Gil Dong' },
+      };
+
+      service.findHistoryById.mockResolvedValue(history as any);
+
+      const result = await controller.getGameResult(id);
+
+      expect(service.findHistoryById).toHaveBeenCalledWith(id);
+      expect(result).toEqual(expectedResult);
+    });
+
+    // Success Case 2: Formatting check (checking displayName concatenation again)
+    it('should correctly format displayName in response', async () => {
+      const id = 'another-uuid';
+      const history = {
+        id,
+        score: 200,
+        gameType: GameType.SKY_DROP,
+        createdAt: new Date(),
+        user: { firstName: 'Hong', lastName: 'Gildong' },
+      };
+
+      service.findHistoryById.mockResolvedValue(history as any);
+
+      const result = await controller.getGameResult(id);
+
+      expect(result.user.displayName).toBe('Hong Gildong');
+    });
+
+    // Failure Case 1: ID not found (Service throws NotFoundException)
+    it('should throw NotFoundException if id not found', async () => {
+      const id = 'invalid-uuid';
+      service.findHistoryById.mockRejectedValue(
+        new NotFoundException('Game history not found'),
+      );
+
+      await expect(controller.getGameResult(id)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    // Failure Case 2: Internal Server Error (DB Error)
+    it('should throw InternalServerErrorException on DB error', async () => {
+      const id = 'error-uuid';
+      service.findHistoryById.mockRejectedValue(
+        new InternalServerErrorException('DB Error'),
+      );
+
+      await expect(controller.getGameResult(id)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+
+    // Failure Case 3: BadRequest (Invalid UUID format simulation)
+    it('should throw BadRequestException for invalid UUID format', async () => {
+      const id = 'not-a-uuid';
+      service.findHistoryById.mockRejectedValue(
+        new BadRequestException('Invalid UUID'),
+      );
+
+      await expect(controller.getGameResult(id)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    // Failure Case 4: Unknown Error
+    it('should propagate unknown errors', async () => {
+      const id = 'unknown-error-uuid';
+      service.findHistoryById.mockRejectedValue(new Error('Unknown Error'));
+
+      await expect(controller.getGameResult(id)).rejects.toThrow(
+        'Unknown Error',
+      );
     });
   });
 });

@@ -6,6 +6,7 @@ import {
   UseGuards,
   Req,
   Query,
+  Param,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOkResponse } from '@nestjs/swagger';
 import { GameService } from './game.service';
@@ -46,5 +47,26 @@ export class GameController {
   @Get('ranking')
   async getRanking(@Query('gameType') gameType?: GameType) {
     return this.gameService.getRanking(gameType);
+  }
+
+  @Get('result/:id')
+  @ApiOkResponse({
+    type: GameHistoryResponseDto,
+    description: '공유된 게임 결과 조회 (로그인 필요 없음)',
+  })
+  async getGameResult(
+    @Param('id') id: string,
+  ): Promise<GameHistoryResponseDto> {
+    const history = await this.gameService.findHistoryById(id);
+
+    return {
+      id: history.id,
+      score: history.score,
+      gameType: history.gameType,
+      createdAt: history.createdAt,
+      user: {
+        displayName: `${history.user.firstName} ${history.user.lastName}`,
+      },
+    };
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GameHistory } from './entities/game-history.entity';
@@ -35,5 +35,17 @@ export class GameService {
       take: 10,
       relations: ['user'], // 유저 정보 포함
     });
+  }
+  async findHistoryById(id: string): Promise<GameHistory> {
+    const history = await this.gameHistoryRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+
+    if (!history) {
+      throw new NotFoundException('Game history not found');
+    }
+
+    return history;
   }
 }
