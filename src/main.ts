@@ -5,8 +5,13 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { Request, Response, NextFunction } from 'express';
 
+import { WinstonModule } from 'nest-winston';
+import { winstonConfig } from './common/utils/winston.config';
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: WinstonModule.createLogger(winstonConfig),
+  });
 
   const corsOrigins = process.env.CORS_ORIGINS?.split(',') || [];
 

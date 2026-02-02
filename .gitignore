@@ -30,3 +30,4 @@ coverage/
 # Debug
 .debug/
 DEV_AUTH.md
+logs/
