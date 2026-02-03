@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { GameModule } from './game/game.module';
+import { WordleModule } from './wordle/wordle.module';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/utils/winston.config';
 
@@ -30,6 +31,7 @@ import { winstonConfig } from './common/utils/winston.config';
     }),
     AuthModule,
     GameModule,
+    WordleModule,
   ],
   controllers: [AppController],
   providers: [AppService],

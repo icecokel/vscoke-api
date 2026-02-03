@@ -63,7 +63,7 @@ describe('GameService', () => {
       user.id = 'test-id';
       const createDto: CreateGameHistoryDto = {
         score: 100,
-        gameType: GameType.BLOCK_TOWER,
+        gameType: GameType.SKY_DROP,
       };
       const savedHistory = { id: 1, ...createDto, user };
 
@@ -90,7 +90,7 @@ describe('GameService', () => {
         {
           id: '1',
           score: 200,
-          gameType: GameType.BLOCK_TOWER,
+          gameType: GameType.SKY_DROP,
           userId: 'user1',
           user: mockUser1,
           createdAt: new Date('2024-01-01'),

@@ -19,7 +19,7 @@ export class GameHistoryResponseDto {
   @ApiProperty({
     description: '게임 타입',
     enum: GameType,
-    example: GameType.BLOCK_TOWER,
+    example: GameType.SKY_DROP,
   })
   gameType: GameType;
 

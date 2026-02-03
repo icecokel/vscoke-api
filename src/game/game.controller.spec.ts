@@ -55,7 +55,7 @@ describe('GameController', () => {
     it('should create a game result', async () => {
       const dto: CreateGameHistoryDto = {
         score: 100,
-        gameType: GameType.BLOCK_TOWER,
+        gameType: GameType.SKY_DROP,
       };
       const req = {
         user: { id: 'test-user', firstName: 'Gil', lastName: 'Dong' },
@@ -132,7 +132,7 @@ describe('GameController', () => {
     it('should throw InternalServerErrorException if service fails', async () => {
       const dto: CreateGameHistoryDto = {
         score: 100,
-        gameType: GameType.BLOCK_TOWER,
+        gameType: GameType.SKY_DROP,
       };
       const req = {
         user: { id: 'test-user', firstName: 'Gil', lastName: 'Dong' },
@@ -151,7 +151,7 @@ describe('GameController', () => {
     it('should propagate service error for invalid logic', async () => {
       const dto: CreateGameHistoryDto = {
         score: -50, // Assuming negative score is allowed by DTO but rejected by Service logic
-        gameType: GameType.BLOCK_TOWER,
+        gameType: GameType.SKY_DROP,
       };
       const req = { user: { id: 'test-user' } };
 
@@ -168,7 +168,7 @@ describe('GameController', () => {
 
   describe('getRanking', () => {
     it('should return ranking list without gameType', async () => {
-      const expectedResult = [{ score: 100, gameType: GameType.BLOCK_TOWER }];
+      const expectedResult = [{ score: 100, gameType: GameType.SKY_DROP }];
       service.getRanking.mockResolvedValue(expectedResult);
 
       const result = await controller.getRanking();
@@ -200,7 +200,7 @@ describe('GameController', () => {
     // Success Case 2 (Implicitly failure check for empty data): Should return empty array if no data
     it('should return empty array if no ranking data exists', async () => {
       service.getRanking.mockResolvedValue([]);
-      const result = await controller.getRanking(GameType.BLOCK_TOWER);
+      const result = await controller.getRanking(GameType.SKY_DROP);
       expect(result).toEqual([]);
     });
   });
@@ -212,7 +212,7 @@ describe('GameController', () => {
       const history = {
         id,
         score: 100,
-        gameType: GameType.BLOCK_TOWER,
+        gameType: GameType.SKY_DROP,
         createdAt: new Date(),
         user: { firstName: 'Gil', lastName: 'Dong' },
       };

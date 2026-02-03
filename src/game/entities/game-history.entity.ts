@@ -19,7 +19,7 @@ export class GameHistory {
   @Column({
     type: 'enum',
     enum: GameType,
-    default: GameType.BLOCK_TOWER,
+    default: GameType.SKY_DROP,
   })
   gameType: GameType;
 
