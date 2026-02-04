@@ -50,12 +50,15 @@ jobs:
 
       # 기존 프로세스 삭제 (확실한 중지)
       - name: Delete App Process
-        run: ssh ${{ secrets.TERMUX_HOST }} "pm2 delete vscoke-api || true"
+        run: |
+          ssh ${{ secrets.TERMUX_HOST }} "pm2 delete vscoke-api || true"
+          sleep 5
 
       # 기존 dist 디렉토리 정리 (좀비 코드 방지)
       - name: Clean Remote Directory
         run: |
           ssh ${{ secrets.TERMUX_HOST }} "rm -rf ~/projects/vscoke-api/dist"
+          sleep 2
 
       - name: Deploy Files
         run: |
