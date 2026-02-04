@@ -7,6 +7,7 @@ import { NotFoundException } from '@nestjs/common';
 const mockWordleService = () => ({
   getRandomWord: jest.fn(),
   getWordCount: jest.fn(),
+  checkWordExists: jest.fn(),
 });
 
 describe('WordleController', () => {
@@ -102,6 +103,26 @@ describe('WordleController', () => {
 
       // undefined.word 접근 시 오류 발생
       await expect(controller.getRandomWord()).rejects.toThrow();
+    });
+  });
+
+  describe('POST /wordle/check', () => {
+    it('단어가 존재하면 true를 반환해야 함', async () => {
+      service.checkWordExists.mockResolvedValue(true);
+
+      const result = await controller.checkWord({ word: 'apple' });
+
+      expect(service.checkWordExists).toHaveBeenCalledWith('apple');
+      expect(result).toBe(true);
+    });
+
+    it('단어가 존재하지 않으면 false를 반환해야 함', async () => {
+      service.checkWordExists.mockResolvedValue(false);
+
+      const result = await controller.checkWord({ word: 'korea' });
+
+      expect(service.checkWordExists).toHaveBeenCalledWith('korea');
+      expect(result).toBe(false);
     });
   });
 });

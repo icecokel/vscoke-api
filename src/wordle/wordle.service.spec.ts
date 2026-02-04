@@ -13,6 +13,7 @@ const mockQueryBuilder = {
 const mockWordRepository = () => ({
   createQueryBuilder: jest.fn(() => mockQueryBuilder),
   count: jest.fn(),
+  exist: jest.fn(),
 });
 
 describe('WordleService', () => {
@@ -127,6 +128,30 @@ describe('WordleService', () => {
       const result = await service.getWordCount();
 
       expect(result).toBe(0);
+    });
+  });
+
+  describe('checkWordExists', () => {
+    it('단어가 존재하면 true를 반환해야 함', async () => {
+      repository.exist.mockResolvedValue(true);
+
+      const result = await service.checkWordExists('apple');
+
+      expect(repository.exist).toHaveBeenCalledWith({
+        where: { word: 'apple' },
+      });
+      expect(result).toBe(true);
+    });
+
+    it('단어가 존재하지 않으면 false를 반환해야 함', async () => {
+      repository.exist.mockResolvedValue(false);
+
+      const result = await service.checkWordExists('korea');
+
+      expect(repository.exist).toHaveBeenCalledWith({
+        where: { word: 'korea' },
+      });
+      expect(result).toBe(false);
     });
   });
 });

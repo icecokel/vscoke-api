@@ -1,7 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { WordleService } from './wordle.service';
 import { WordResponseDto } from './dto/word-response.dto';
+import { CheckWordDto } from './dto/check-word.dto';
 
 /**
  * 워들 게임 관련 API를 제공하는 컨트롤러
@@ -23,5 +24,18 @@ export class WordleController {
   async getRandomWord(): Promise<WordResponseDto> {
     const wordEntity = await this.wordleService.getRandomWord();
     return { word: wordEntity.word };
+  }
+
+  /**
+   * 단어의 유효성을 검사함 (DB 존재 여부)
+   */
+  @Post('check')
+  @ApiOperation({ summary: '단어 유효성 검사' })
+  @ApiOkResponse({
+    description: '단어 존재 여부 (true: 존재함, false: 존재하지 않음)',
+    type: Boolean,
+  })
+  async checkWord(@Body() checkWordDto: CheckWordDto): Promise<boolean> {
+    return this.wordleService.checkWordExists(checkWordDto.word);
   }
 }
