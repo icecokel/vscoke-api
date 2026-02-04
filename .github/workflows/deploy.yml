@@ -22,6 +22,8 @@ jobs:
         run: |
           npm ci
           npm run build
+          # 압축 파일 생성 (전송 속도 최적화: dist 폴더와 설정 파일들을 하나로 묶음)
+          tar -czf deploy.tar.gz dist package.json package-lock.json
 
       - name: Install cloudflared
         run: |
@@ -54,21 +56,12 @@ jobs:
           ssh ${{ secrets.TERMUX_HOST }} "pm2 delete vscoke-api || true"
           sleep 5
 
-      # 기존 dist 디렉토리 정리 (좀비 코드 방지)
-      - name: Clean Remote Directory
+      - name: Deploy Files (Compressed)
         run: |
-          ssh ${{ secrets.TERMUX_HOST }} "rm -rf ~/projects/vscoke-api/dist"
-          sleep 2
+          # 압축 파일 전송 (파일 N개 전송 -> 1개 전송으로 Latency 최소화)
+          scp deploy.tar.gz ${{ secrets.TERMUX_HOST }}:~/projects/vscoke-api/
 
-      - name: Deploy Files
+      - name: Extract & Restart
         run: |
-          # dist 폴더와 package.json, lock 파일 전송
-          scp -r dist package.json package-lock.json ${{ secrets.TERMUX_HOST }}:~/projects/vscoke-api/
-
-      - name: Restart App
-        run: |
-          # 파일 확인 (디버깅 - dist 폴더 내부만 확인)
-          ssh ${{ secrets.TERMUX_HOST }} "pwd && ls -F ~/projects/vscoke-api/dist/src"
-
-          # 의존성 설치 및 앱 시작 (경로 수정: dist/src/main.js)
-          ssh ${{ secrets.TERMUX_HOST }} "cd ~/projects/vscoke-api && npm ci --omit=dev --ignore-scripts && pm2 start dist/src/main.js --name vscoke-api"
+          # 원격지: 기존 dist 삭제 -> 압축 해제 -> 압축파일 삭제 -> 의존성 설치 -> 앱 재시작
+          ssh ${{ secrets.TERMUX_HOST }} "cd ~/projects/vscoke-api && rm -rf dist && tar -xzf deploy.tar.gz && rm deploy.tar.gz && npm ci --omit=dev --ignore-scripts && pm2 start dist/src/main.js --name vscoke-api"
