@@ -68,7 +68,7 @@ jobs:
       - name: Restart App
         run: |
           # 파일 확인 (디버깅 - dist 폴더 내부만 확인)
-          ssh ${{ secrets.TERMUX_HOST }} "ls -F ~/projects/vscoke-api/dist"
+          ssh ${{ secrets.TERMUX_HOST }} "pwd && ls -F ~/projects/vscoke-api/dist/src"
 
-          # 의존성 설치 및 앱 시작 (Restart 로직 제거 -> Start만 수행)
-          ssh ${{ secrets.TERMUX_HOST }} "cd ~/projects/vscoke-api && npm ci --omit=dev --ignore-scripts && pm2 start dist/main.js --name vscoke-api"
+          # 의존성 설치 및 앱 시작 (경로 수정: dist/src/main.js)
+          ssh ${{ secrets.TERMUX_HOST }} "cd ~/projects/vscoke-api && npm ci --omit=dev --ignore-scripts && pm2 start dist/src/main.js --name vscoke-api"
