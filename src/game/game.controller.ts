@@ -9,7 +9,12 @@ import {
   Param,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOkResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOkResponse,
+  ApiOperation,
+} from '@nestjs/swagger';
 import { GameService } from './game.service';
 import { CreateGameHistoryDto } from './dto/create-game-history.dto';
 import { GameHistoryResponseDto } from './dto/game-history-response.dto';
@@ -30,6 +35,7 @@ export class GameController {
    */
   @Post('result')
   @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: '게임 결과 생성 및 랭킹 확인' })
   @ApiOkResponse({ type: GameHistoryResponseDto })
   async createResult(
     @Req() req: any,
@@ -63,6 +69,7 @@ export class GameController {
    * 게임별 랭킹 목록 조회 (Top 10)
    */
   @Get('ranking')
+  @ApiOperation({ summary: '게임별 Top 10 랭킹 조회' })
   async getRanking(@Query('gameType') gameType?: GameType) {
     return this.gameService.getRanking(gameType);
   }
@@ -71,6 +78,7 @@ export class GameController {
    * 특정 게임 결과 상세 조회 (ID 기준, 공유용)
    */
   @Get('result/:id')
+  @ApiOperation({ summary: '게임 결과 상세 조회' })
   @ApiOkResponse({
     type: GameHistoryResponseDto,
     description: '공유된 게임 결과 조회 (로그인 필요 없음)',
