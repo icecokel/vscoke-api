@@ -16,12 +16,18 @@ import { GameHistoryResponseDto } from './dto/game-history-response.dto';
 import { GoogleAuthGuard } from '../auth/google-auth.guard';
 import { GameType } from './enums/game-type.enum';
 
+/**
+ * 게임 결과 관리 및 랭킹 조회를 담당하는 컨트롤러
+ */
 @ApiTags('Game')
 @ApiBearerAuth()
 @Controller('game')
 export class GameController {
   constructor(private readonly gameService: GameService) {}
 
+  /**
+   * 게임 결과 저장 및 현재 등수 반환
+   */
   @Post('result')
   @UseGuards(GoogleAuthGuard)
   @ApiOkResponse({ type: GameHistoryResponseDto })
@@ -53,11 +59,17 @@ export class GameController {
     };
   }
 
+  /**
+   * 게임별 랭킹 목록 조회 (Top 10)
+   */
   @Get('ranking')
   async getRanking(@Query('gameType') gameType?: GameType) {
     return this.gameService.getRanking(gameType);
   }
 
+  /**
+   * 특정 게임 결과 상세 조회 (ID 기준, 공유용)
+   */
   @Get('result/:id')
   @ApiOkResponse({
     type: GameHistoryResponseDto,

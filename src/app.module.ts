@@ -9,12 +9,19 @@ import { WordleModule } from './wordle/wordle.module';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/utils/winston.config';
 
+/**
+ * 애플리케이션의 루트 모듈
+ * 모든 기능 모듈과 전역 설정을 조립함
+ */
 @Module({
   imports: [
+    // 환경 변수 설정 (.env 파일 로드)
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // Winston 로깅 모듈 설정
     WinstonModule.forRoot(winstonConfig),
+    // 데이터베이스 연결 설정 (TypeORM)
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -25,10 +32,11 @@ import { winstonConfig } from './common/utils/winston.config';
         password: configService.get<string>('DB_PASSWORD', 'postgres'),
         database: configService.get<string>('DB_DATABASE', 'vscoke'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
+        synchronize: true, // 주의: 운영 환경에서는 false로 설정 권장
       }),
       inject: [ConfigService],
     }),
+    // 기능별 모듈
     AuthModule,
     GameModule,
     WordleModule,
