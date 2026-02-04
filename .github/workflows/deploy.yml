@@ -44,6 +44,11 @@ jobs:
         run: |
           ssh ${{ secrets.TERMUX_HOST }} "mkdir -p ~/projects/vscoke-api"
 
+      # 기존 dist 디렉토리 정리 (좀비 코드 방지)
+      - name: Clean Remote Directory
+        run: |
+          ssh ${{ secrets.TERMUX_HOST }} "rm -rf ~/projects/vscoke-api/dist"
+
       - name: Deploy Files
         run: |
           # dist 폴더와 package.json, lock 파일 전송
