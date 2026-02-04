@@ -44,6 +44,10 @@ jobs:
         run: |
           ssh ${{ secrets.TERMUX_HOST }} "mkdir -p ~/projects/vscoke-api"
 
+      # 파일 삭제 전 앱 중지 (크래시 방지)
+      - name: Stop App
+        run: ssh ${{ secrets.TERMUX_HOST }} "pm2 stop vscoke-api || true"
+
       # 기존 dist 디렉토리 정리 (좀비 코드 방지)
       - name: Clean Remote Directory
         run: |
