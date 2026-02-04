@@ -31,7 +31,10 @@ describe('WordleController (e2e)', () => {
       .post('/wordle/check')
       .send({ word: 'apple' })
       .expect(201)
-      .expect('true');
+      .expect((res) => {
+        if (res.body.exists !== true)
+          throw new Error('Expected exists to be true');
+      });
   });
 
   it('/wordle/check (POST) - invalid word (not in db)', () => {
@@ -39,7 +42,10 @@ describe('WordleController (e2e)', () => {
       .post('/wordle/check')
       .send({ word: 'korea' })
       .expect(201)
-      .expect('false');
+      .expect((res) => {
+        if (res.body.exists !== false)
+          throw new Error('Expected exists to be false');
+      });
   });
 
   it('/wordle/check (POST) - bad request (too short)', async () => {

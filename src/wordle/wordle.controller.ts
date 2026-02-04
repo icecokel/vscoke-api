@@ -3,6 +3,7 @@ import { ApiTags, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { WordleService } from './wordle.service';
 import { WordResponseDto } from './dto/word-response.dto';
 import { CheckWordDto } from './dto/check-word.dto';
+import { CheckWordResponseDto } from './dto/check-word-response.dto';
 
 /**
  * 워들 게임 관련 API를 제공하는 컨트롤러
@@ -32,10 +33,13 @@ export class WordleController {
   @Post('check')
   @ApiOperation({ summary: '단어 유효성 검사' })
   @ApiOkResponse({
-    description: '단어 존재 여부 (true: 존재함, false: 존재하지 않음)',
-    type: Boolean,
+    description: '단어 존재 여부',
+    type: CheckWordResponseDto,
   })
-  async checkWord(@Body() checkWordDto: CheckWordDto): Promise<boolean> {
-    return this.wordleService.checkWordExists(checkWordDto.word);
+  async checkWord(
+    @Body() checkWordDto: CheckWordDto,
+  ): Promise<CheckWordResponseDto> {
+    const exists = await this.wordleService.checkWordExists(checkWordDto.word);
+    return { exists };
   }
 }

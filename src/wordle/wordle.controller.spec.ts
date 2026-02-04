@@ -113,7 +113,7 @@ describe('WordleController', () => {
       const result = await controller.checkWord({ word: 'apple' });
 
       expect(service.checkWordExists).toHaveBeenCalledWith('apple');
-      expect(result).toBe(true);
+      expect(result).toEqual({ exists: true });
     });
 
     it('단어가 존재하지 않으면 false를 반환해야 함', async () => {
@@ -122,7 +122,7 @@ describe('WordleController', () => {
       const result = await controller.checkWord({ word: 'korea' });
 
       expect(service.checkWordExists).toHaveBeenCalledWith('korea');
-      expect(result).toBe(false);
+      expect(result).toEqual({ exists: false });
     });
   });
 });
