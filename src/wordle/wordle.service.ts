@@ -44,12 +44,10 @@ export class WordleService {
    * @returns 존재 여부 (true/false)
    */
   async checkWordExists(word: string): Promise<boolean> {
-    // 대소문자 구분 없이 비교하기 위해 소문자로 변환하여 검색하거나,
-    // DB Collation 설정에 따라 다를 수 있음. 여기서는 정확한 매칭을 가정하되,
-    // 일관성을 위해 필요하다면 Lowercase 처리를 고려할 수 있음.
-    // 현재 데이터가 소문자로 저장되어 있다고 가정.
+    // 대소문자 구분 없이 비교하기 위해 소문자로 변환하여 검색
+    // 현재 데이터가 소문자로 저장되어 있다고 가정함
     return this.wordRepository.exist({
-      where: { word },
+      where: { word: word.toLowerCase() },
     });
   }
 }
