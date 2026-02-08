@@ -52,7 +52,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
 
       // 알림 전송 (Fire-and-forget)
-      this.sendNotification(errorMessage).catch((err: any) => {
+      const context = `[${request.method}] ${request.url}`;
+      this.sendNotification(context, exception).catch((err: any) => {
         this.logger.error(`Failed to send notification: ${err.message}`);
       });
     } else {
@@ -74,7 +75,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   /**
    * 알림 서비스를 통해 에러 메시지를 전송합니다.
    */
-  private async sendNotification(message: any) {
+  private async sendNotification(context: string, exception: unknown) {
     const notifyUrl = process.env.NOTIFY_SERVICE_URL;
     const notifyUser = process.env.NOTIFY_SERVICE_USER;
     const notifyPassword = process.env.NOTIFY_SERVICE_PASSWORD;
@@ -84,8 +85,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return;
     }
 
+    const errorDetail =
+      exception instanceof Error
+        ? exception.message
+        : JSON.stringify(exception);
+
     const payload = {
-      message: `[Server Error] ${JSON.stringify(message)}`,
+      message: `🚨 **Server Error Detected**\n\n- **Context**: \`${context}\`\n- **Error**: ${errorDetail}`,
     };
 
     const auth = Buffer.from(`${notifyUser}:${notifyPassword}`).toString(
