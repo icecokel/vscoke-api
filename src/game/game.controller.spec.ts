@@ -17,6 +17,7 @@ const mockGameService = () => ({
   getRanking: jest.fn(),
   findHistoryById: jest.fn(),
   getUserRank: jest.fn(),
+  getUserBestScore: jest.fn(),
 });
 
 describe('GameController', () => {
@@ -76,19 +77,25 @@ describe('GameController', () => {
           displayName: 'Gil Dong',
         },
         rank: 1,
+        bestScore: 200,
+        allTimeRank: 1,
+        weeklyRank: 1,
       };
 
       service.createHistory.mockResolvedValue(createdHistory as any);
-      service.getUserRank.mockResolvedValue(1);
+      service.getUserRank
+        .mockResolvedValueOnce(1) // allTimeRank
+        .mockResolvedValueOnce(1) // weeklyRank
+        .mockResolvedValueOnce(1); // currentRank
+      service.getUserBestScore
+        .mockResolvedValueOnce(200) // bestScore
+        .mockResolvedValueOnce(200); // weeklyBestScore
 
       const result = await controller.createResult(req, dto);
 
       expect(service.createHistory).toHaveBeenCalledWith(req.user, dto);
-      expect(service.getUserRank).toHaveBeenCalledWith(
-        req.user.id,
-        dto.score,
-        dto.gameType,
-      );
+      expect(service.getUserBestScore).toHaveBeenCalledTimes(2);
+      expect(service.getUserRank).toHaveBeenCalledTimes(3);
       expect(result).toEqual(expectedResult);
     });
 
@@ -117,10 +124,14 @@ describe('GameController', () => {
           displayName: 'Gil Dong',
         },
         rank: 5,
+        bestScore: 200,
+        allTimeRank: 5,
+        weeklyRank: 5,
       };
 
       service.createHistory.mockResolvedValue(createdHistory as any);
       service.getUserRank.mockResolvedValue(5);
+      service.getUserBestScore.mockResolvedValue(200);
 
       const result = await controller.createResult(req, dto);
 
@@ -139,7 +150,7 @@ describe('GameController', () => {
       };
 
       service.createHistory.mockRejectedValue(new Error('DB Error'));
-      service.getUserRank.mockResolvedValue(1);
+      // service.getUserRank.mockResolvedValue(1); // Not reached
 
       await expect(controller.createResult(req, dto)).rejects.toThrow(
         'DB Error',
@@ -158,7 +169,7 @@ describe('GameController', () => {
       service.createHistory.mockRejectedValue(
         new BadRequestException('Invalid Score'),
       );
-      service.getUserRank.mockResolvedValue(1);
+      // service.getUserRank.mockResolvedValue(1); // Not reached
 
       await expect(controller.createResult(req, dto)).rejects.toThrow(
         BadRequestException,

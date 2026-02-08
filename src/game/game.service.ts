@@ -17,6 +17,31 @@ export class GameService {
   ) {}
 
   /**
+   * 유저의 최고 점수 조회 (기간 필터링 지원)
+   */
+  async getUserBestScore(
+    userId: string,
+    gameType: GameType,
+    dateRange?: { start: Date; end: Date },
+  ): Promise<number> {
+    const query = this.gameHistoryRepository
+      .createQueryBuilder('gh')
+      .select('MAX(gh.score)', 'maxScore')
+      .where('gh.userId = :userId', { userId })
+      .andWhere('gh.gameType = :gameType', { gameType });
+
+    if (dateRange) {
+      query.andWhere('gh.createdAt BETWEEN :start AND :end', {
+        start: dateRange.start,
+        end: dateRange.end,
+      });
+    }
+
+    const result = await query.getRawOne();
+    return result?.maxScore ? parseInt(result.maxScore, 10) : 0;
+  }
+
+  /**
    * 새로운 게임 기록을 생성하고 저장함
    */
   async createHistory(
@@ -95,6 +120,7 @@ export class GameService {
     userId: string,
     score: number,
     gameType: GameType,
+    dateRange?: { start: Date; end: Date },
   ): Promise<number> {
     // 유저별 최고 점수 리스트를 구하는 서브쿼리
     const subQuery = this.gameHistoryRepository
@@ -103,6 +129,13 @@ export class GameService {
       .addSelect('MAX(gh.score)', 'maxScore')
       .where('gh.gameType = :gameType', { gameType })
       .groupBy('gh.userId');
+
+    if (dateRange) {
+      subQuery.andWhere('gh.createdAt BETWEEN :start AND :end', {
+        start: dateRange.start,
+        end: dateRange.end,
+      });
+    }
 
     // 현재 점수보다 높은 점수를 가진 고유 유저들의 수를 계산
     const result = await this.gameHistoryRepository
@@ -115,7 +148,13 @@ export class GameService {
       )
       .where('gameHistory.gameType = :gameType', { gameType })
       .andWhere('topScores.maxScore > :score', { score })
-      .setParameters({ ...subQuery.getParameters(), score, gameType })
+      .setParameters({
+        ...subQuery.getParameters(),
+        score,
+        gameType,
+        start: dateRange?.start,
+        end: dateRange?.end,
+      })
       .getRawOne();
 
     // (나보다 높은 유저 수) + 1 = 현재 나의 등수

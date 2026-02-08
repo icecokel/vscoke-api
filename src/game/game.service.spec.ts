@@ -21,6 +21,8 @@ const mockQueryBuilder = {
   getParameters: jest.fn().mockReturnValue({}),
   setParameters: jest.fn().mockReturnThis(),
   getMany: jest.fn(),
+  getRawOne: jest.fn(),
+  andWhere: jest.fn().mockReturnThis(),
 };
 
 const mockGameHistoryRepository = () => ({
@@ -146,6 +148,75 @@ describe('GameService', () => {
         { gameType: GameType.SKY_DROP },
       );
       expect(result).toEqual(mockRankings);
+    });
+  });
+
+  describe('getUserBestScore', () => {
+    it('should return user best score', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue({ maxScore: '100' });
+
+      const result = await service.getUserBestScore('user1', GameType.SKY_DROP);
+
+      expect(repository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith(
+        'MAX(gh.score)',
+        'maxScore',
+      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'gh.userId = :userId',
+        { userId: 'user1' },
+      );
+      expect(result).toBe(100);
+    });
+
+    it('should return 0 if no score found', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue({});
+
+      const result = await service.getUserBestScore('user1', GameType.SKY_DROP);
+
+      expect(result).toBe(0);
+    });
+
+    it('should apply date range filter', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue({ maxScore: '100' });
+      const dateRange = {
+        start: new Date('2024-01-01'),
+        end: new Date('2024-01-07'),
+      };
+
+      await service.getUserBestScore('user1', GameType.SKY_DROP, dateRange);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'gh.createdAt BETWEEN :start AND :end',
+        dateRange,
+      );
+    });
+  });
+
+  describe('getUserRank', () => {
+    it('should return user rank', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue({ count: '5' });
+
+      const result = await service.getUserRank('user1', 100, GameType.SKY_DROP);
+
+      expect(result).toBe(6); // 5명보다 낮으면 6등
+    });
+
+    it('should apply date range filter to rank calculation', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue({ count: '2' });
+      const dateRange = {
+        start: new Date('2024-01-01'),
+        end: new Date('2024-01-07'),
+      };
+
+      await service.getUserRank('user1', 100, GameType.SKY_DROP, dateRange);
+
+      // 서브쿼리와 메인쿼리 모두에 dateRange 필터가 적용되어야 함
+      // 여기서는 모킹된 방식상 호출 여부만 확인 (복잡한 쿼리 빌더 모킹 한계)
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'gh.createdAt BETWEEN :start AND :end',
+        dateRange,
+      );
     });
   });
 });

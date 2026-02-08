@@ -39,4 +39,28 @@ export class GameHistoryResponseDto {
     nullable: true,
   })
   rank?: number | null;
+
+  @ApiProperty({
+    description: '유저의 역대 최고 점수',
+    example: 1200,
+    required: false,
+    nullable: true,
+  })
+  bestScore?: number;
+
+  @ApiProperty({
+    description: '전체 기간 랭킹',
+    example: 42,
+    required: false,
+    nullable: true,
+  })
+  allTimeRank?: number;
+
+  @ApiProperty({
+    description: '금주 랭킹 (KST 월요일 0시 ~ 일요일 24시 기준)',
+    example: 5,
+    required: false,
+    nullable: true,
+  })
+  weeklyRank?: number;
 }
