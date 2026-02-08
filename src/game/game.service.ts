@@ -59,36 +59,32 @@ export class GameService {
    * 게임별 랭킹 목록을 조회함 (유저별 최고 점수 기준 Top 10)
    */
   async getRanking(gameType?: GameType): Promise<GameHistory[]> {
-    // 유저별 최고 점수만 추출하기 위한 서브쿼리
-    const subQuery = this.gameHistoryRepository
-      .createQueryBuilder('gh')
-      .select('gh.userId', 'userId')
-      .addSelect('MAX(gh.score)', 'maxScore')
-      .groupBy('gh.userId');
-
-    if (gameType) {
-      subQuery.where('gh.gameType = :gameType', { gameType });
-    }
-
-    // 메인 쿼리: 서브쿼리 결과와 조인하여 상세 기록 및 유저 정보를 포함한 Top 10 추출
+    // Raw SQL 사용: 유저별 최고 점수와 해당 기록을 조회
     const query = this.gameHistoryRepository
-      .createQueryBuilder('gameHistory')
-      .innerJoin(
-        `(${subQuery.getQuery()})`,
-        'topScores',
-        'gameHistory.userId = topScores.userId AND gameHistory.score = topScores.maxScore',
-      )
-      .leftJoinAndSelect('gameHistory.user', 'user')
-      .orderBy('gameHistory.score', 'DESC') // 점수 높은 순
-      .addOrderBy('gameHistory.createdAt', 'ASC') // 같은 점수일 경우 먼저 기록한 유저 우선
-      .take(10); // 최대 10위까지
+      .createQueryBuilder('gh')
+      .leftJoinAndSelect('gh.user', 'user')
+      .where((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select('gh2.userId')
+          .addSelect('MAX(gh2.score)', 'maxScore')
+          .from(GameHistory, 'gh2')
+          .groupBy('gh2.userId');
+
+        if (gameType) {
+          subQuery.where('gh2.gameType = :gameType');
+        }
+
+        // 복잡한 조인 대신 IN + 점수 일치 조건 사용
+        return `(gh.userId, gh.score) IN (${subQuery.getQuery()})`;
+      })
+      .orderBy('gh.score', 'DESC')
+      .addOrderBy('gh.createdAt', 'ASC')
+      .take(10);
 
     if (gameType) {
-      query.where('gameHistory.gameType = :gameType', { gameType });
+      query.andWhere('gh.gameType = :gameType', { gameType });
     }
-
-    // 서브쿼리 파라미터 적용
-    query.setParameters(subQuery.getParameters());
 
     return query.getMany();
   }
@@ -122,42 +118,39 @@ export class GameService {
     gameType: GameType,
     dateRange?: { start: Date; end: Date },
   ): Promise<number> {
-    // 유저별 최고 점수 리스트를 구하는 서브쿼리
-    const subQuery = this.gameHistoryRepository
+    // 각 유저의 최고 점수 중 현재 점수보다 높은 유저 수를 계산
+    const query = this.gameHistoryRepository
       .createQueryBuilder('gh')
-      .select('gh.userId', 'userId')
-      .addSelect('MAX(gh.score)', 'maxScore')
-      .where('gh.gameType = :gameType', { gameType })
-      .groupBy('gh.userId');
+      .select('COUNT(DISTINCT gh.userId)', 'count')
+      .where('gh.gameType = :gameType', { gameType });
 
     if (dateRange) {
-      subQuery.andWhere('gh.createdAt BETWEEN :start AND :end', {
+      query.andWhere('gh.createdAt BETWEEN :start AND :end', {
         start: dateRange.start,
         end: dateRange.end,
       });
     }
 
-    // 현재 점수보다 높은 점수를 가진 고유 유저들의 수를 계산
-    const result = await this.gameHistoryRepository
-      .createQueryBuilder('gameHistory')
-      .select('COUNT(DISTINCT gameHistory.userId)', 'count')
-      .innerJoin(
-        `(${subQuery.getQuery()})`,
-        'topScores',
-        'gameHistory.userId = topScores.userId AND gameHistory.score = topScores.maxScore',
-      )
-      .where('gameHistory.gameType = :gameType', { gameType })
-      .andWhere('topScores.maxScore > :score', { score })
-      .setParameters({
-        ...subQuery.getParameters(),
-        score,
-        gameType,
-        start: dateRange?.start,
-        end: dateRange?.end,
-      })
-      .getRawOne();
+    // 유저별 최고 점수가 현재 점수보다 높은 경우만 카운트
+    // 서브쿼리로 각 유저의 최고 점수 계산 후 비교
+    const result = await this.gameHistoryRepository.query(
+      `
+      SELECT COUNT(*) as count
+      FROM (
+        SELECT "userId", MAX(score) as max_score
+        FROM game_history
+        WHERE "gameType" = $1
+        ${dateRange ? 'AND "createdAt" BETWEEN $3 AND $4' : ''}
+        GROUP BY "userId"
+      ) AS user_scores
+      WHERE max_score > $2
+      `,
+      dateRange
+        ? [gameType, score, dateRange.start, dateRange.end]
+        : [gameType, score],
+    );
 
     // (나보다 높은 유저 수) + 1 = 현재 나의 등수
-    return parseInt(result?.count || '0', 10) + 1;
+    return parseInt(result?.[0]?.count || '0', 10) + 1;
   }
 }

@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { GameService } from './game.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { GameHistory } from './entities/game-history.entity';
-import { Repository } from 'typeorm';
 import { User } from '../auth/entities/user.entity';
 import { CreateGameHistoryDto } from './dto/create-game-history.dto';
 import { GameType } from './enums/game-type.enum';
@@ -23,6 +22,8 @@ const mockQueryBuilder = {
   getMany: jest.fn(),
   getRawOne: jest.fn(),
   andWhere: jest.fn().mockReturnThis(),
+  subQuery: jest.fn().mockReturnThis(),
+  from: jest.fn().mockReturnThis(),
 };
 
 const mockGameHistoryRepository = () => ({
@@ -31,6 +32,7 @@ const mockGameHistoryRepository = () => ({
   find: jest.fn(),
   findOne: jest.fn(),
   createQueryBuilder: jest.fn(() => mockQueryBuilder),
+  query: jest.fn(), // Raw query 지원
 });
 
 describe('GameService', () => {
@@ -112,12 +114,9 @@ describe('GameService', () => {
       const result = await service.getRanking();
 
       expect(repository.createQueryBuilder).toHaveBeenCalled();
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'gameHistory.score',
-        'DESC',
-      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('gh.score', 'DESC');
       expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith(
-        'gameHistory.createdAt',
+        'gh.createdAt',
         'ASC',
       );
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
@@ -143,8 +142,9 @@ describe('GameService', () => {
       const result = await service.getRanking(GameType.SKY_DROP);
 
       expect(repository.createQueryBuilder).toHaveBeenCalled();
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        'gameHistory.gameType = :gameType',
+      expect(mockQueryBuilder.where).toHaveBeenCalled(); // 함수가 전달되므로 호출 여부만 확인
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'gh.gameType = :gameType',
         { gameType: GameType.SKY_DROP },
       );
       expect(result).toEqual(mockRankings);
@@ -195,28 +195,34 @@ describe('GameService', () => {
 
   describe('getUserRank', () => {
     it('should return user rank', async () => {
-      mockQueryBuilder.getRawOne.mockResolvedValue({ count: '5' });
+      repository.query.mockResolvedValue([{ count: '5' }]);
 
       const result = await service.getUserRank('user1', 100, GameType.SKY_DROP);
 
+      expect(repository.query).toHaveBeenCalled();
       expect(result).toBe(6); // 5명보다 낮으면 6등
     });
 
     it('should apply date range filter to rank calculation', async () => {
-      mockQueryBuilder.getRawOne.mockResolvedValue({ count: '2' });
+      repository.query.mockResolvedValue([{ count: '2' }]);
       const dateRange = {
         start: new Date('2024-01-01'),
         end: new Date('2024-01-07'),
       };
 
-      await service.getUserRank('user1', 100, GameType.SKY_DROP, dateRange);
-
-      // 서브쿼리와 메인쿼리 모두에 dateRange 필터가 적용되어야 함
-      // 여기서는 모킹된 방식상 호출 여부만 확인 (복잡한 쿼리 빌더 모킹 한계)
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'gh.createdAt BETWEEN :start AND :end',
+      const result = await service.getUserRank(
+        'user1',
+        100,
+        GameType.SKY_DROP,
         dateRange,
       );
+
+      // Raw query에 dateRange 파라미터가 전달되어야 함
+      expect(repository.query).toHaveBeenCalledWith(
+        expect.stringContaining('BETWEEN'),
+        [GameType.SKY_DROP, 100, dateRange.start, dateRange.end],
+      );
+      expect(result).toBe(3); // 2명보다 낮으면 3등
     });
   });
 });
