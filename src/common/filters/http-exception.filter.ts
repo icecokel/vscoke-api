@@ -98,7 +98,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // 상세 알림 메시지 포맷
     const notifyMessage = [
-      `🚨 **Server Error Detected**`,
+      `🚨 **[vscoke-api] Server Error Detected**`,
       ``,
       `**📍 Request Info**`,
       `- **Time**: \`${timestamp}\``,
