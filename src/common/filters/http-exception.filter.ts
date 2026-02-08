@@ -50,6 +50,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
           ? exception.stack
           : JSON.stringify(exception),
       );
+
+      // 알림 전송 (Fire-and-forget)
+      this.sendNotification(errorMessage).catch((err: any) => {
+        this.logger.error(`Failed to send notification: ${err.message}`);
+      });
     } else {
       this.logger.warn(
         `[${request.method}] ${request.url} - ${status} - ${JSON.stringify(errorMessage)}`,
@@ -64,5 +69,46 @@ export class HttpExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
     });
+  }
+
+  /**
+   * 알림 서비스를 통해 에러 메시지를 전송합니다.
+   */
+  private async sendNotification(message: any) {
+    const notifyUrl = process.env.NOTIFY_SERVICE_URL;
+    const notifyUser = process.env.NOTIFY_SERVICE_USER;
+    const notifyPassword = process.env.NOTIFY_SERVICE_PASSWORD;
+
+    if (!notifyUrl || !notifyUser || !notifyPassword) {
+      // 환경변수가 없으면 조용히 무시 (또는 경고 로그)
+      return;
+    }
+
+    const payload = {
+      message: `[Server Error] ${JSON.stringify(message)}`,
+    };
+
+    const auth = Buffer.from(`${notifyUser}:${notifyPassword}`).toString(
+      'base64',
+    );
+
+    try {
+      const response = await fetch(notifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${auth}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Notification service responded with ${response.status}`,
+        );
+      }
+    } catch (error) {
+      throw error;
+    }
   }
 }
