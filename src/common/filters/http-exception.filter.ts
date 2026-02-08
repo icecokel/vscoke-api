@@ -52,8 +52,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
 
       // 알림 전송 (Fire-and-forget)
-      const context = `[${request.method}] ${request.url}`;
-      this.sendNotification(context, exception).catch((err: any) => {
+      this.sendNotification(request, exception).catch((err: any) => {
         this.logger.error(`Failed to send notification: ${err.message}`);
       });
     } else {
@@ -73,26 +72,50 @@ export class HttpExceptionFilter implements ExceptionFilter {
   }
 
   /**
-   * 알림 서비스를 통해 에러 메시지를 전송합니다.
+   * 알림 서비스를 통해 상세한 에러 정보를 전송합니다.
    */
-  private async sendNotification(context: string, exception: unknown) {
+  private async sendNotification(request: Request, exception: unknown) {
     const notifyUrl = process.env.NOTIFY_SERVICE_URL;
     const notifyUser = process.env.NOTIFY_SERVICE_USER;
     const notifyPassword = process.env.NOTIFY_SERVICE_PASSWORD;
 
     if (!notifyUrl || !notifyUser || !notifyPassword) {
-      // 환경변수가 없으면 조용히 무시 (또는 경고 로그)
       return;
     }
 
-    const errorDetail =
-      exception instanceof Error
-        ? exception.message
-        : JSON.stringify(exception);
+    // 에러 상세 정보 추출
+    const errorMessage =
+      exception instanceof Error ? exception.message : String(exception);
+    const stackTrace =
+      exception instanceof Error ? exception.stack : 'No stack trace available';
 
-    const payload = {
-      message: `🚨 **Server Error Detected**\n\n- **Context**: \`${context}\`\n- **Error**: ${errorDetail}`,
-    };
+    // 요청 정보 추출
+    const method = request.method;
+    const url = request.url;
+    const queryParams = JSON.stringify(request.query);
+    const body = JSON.stringify(request.body);
+    const timestamp = new Date().toISOString();
+
+    // 상세 알림 메시지 포맷
+    const notifyMessage = [
+      `🚨 **Server Error Detected**`,
+      ``,
+      `**📍 Request Info**`,
+      `- **Time**: \`${timestamp}\``,
+      `- **Method**: \`${method}\``,
+      `- **URL**: \`${url}\``,
+      `- **Query**: \`${queryParams}\``,
+      `- **Body**: \`\`\`json\n${body}\n\`\`\``,
+      ``,
+      `**❌ Error Details**`,
+      `- **Message**: ${errorMessage}`,
+      `- **Stack**:`,
+      `\`\`\``,
+      stackTrace,
+      `\`\`\``,
+    ].join('\n');
+
+    const payload = { message: notifyMessage };
 
     const auth = Buffer.from(`${notifyUser}:${notifyPassword}`).toString(
       'base64',
