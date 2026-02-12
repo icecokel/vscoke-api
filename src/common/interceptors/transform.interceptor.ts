@@ -27,7 +27,7 @@ export class TransformInterceptor<T> implements NestInterceptor<
    * 요청을 가로채어 응답 데이터를 data 필드에 감쌈
    */
   intercept(
-    context: ExecutionContext,
+    _context: ExecutionContext,
     next: CallHandler,
   ): Observable<Response<T>> {
     return next.handle().pipe(

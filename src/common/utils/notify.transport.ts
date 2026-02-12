@@ -1,5 +1,4 @@
 import Transport = require('winston-transport');
-import { LoggerOptions } from 'winston';
 
 /**
  * 알림 서비스로 로그를 전송하기 위한 트랜스포트 옵션

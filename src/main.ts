@@ -51,7 +51,7 @@ async function bootstrap() {
    * Swagger 관련 응답의 캐싱을 방지하는 미들웨어
    */
   // Prevent Swagger caching
-  const noCache = (req: Request, res: Response, next: NextFunction) => {
+  const noCache = (_req: Request, res: Response, next: NextFunction) => {
     res.header(
       'Cache-Control',
       'no-store, no-cache, must-revalidate, proxy-revalidate',
