@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { GameHistory } from './entities/game-history.entity';
 import { User } from '../auth/entities/user.entity';
 import { CreateGameHistoryDto } from './dto/create-game-history.dto';
@@ -59,34 +59,47 @@ export class GameService {
    * 게임별 랭킹 목록을 조회함 (유저별 최고 점수 기준 Top 10)
    */
   async getRanking(gameType?: GameType): Promise<GameHistory[]> {
-    // Raw SQL 사용: 유저별 최고 점수와 해당 기록을 조회
-    const query = this.gameHistoryRepository
-      .createQueryBuilder('gh')
-      .leftJoinAndSelect('gh.user', 'user')
-      .where((qb) => {
-        const subQuery = qb
-          .subQuery()
-          .select('gh2.userId')
-          .addSelect('MAX(gh2.score)', 'maxScore')
-          .from(GameHistory, 'gh2')
-          .groupBy('gh2.userId');
+    // 유저별 최고 점수 1건만 추린 뒤 전체 상위 10건을 구함
+    const whereClause = gameType ? 'WHERE gh."gameType" = $1' : '';
+    const ids: Array<{ id: string }> = await this.gameHistoryRepository.query(
+      `
+      SELECT ranked.id
+      FROM (
+        SELECT
+          gh.id,
+          gh."userId",
+          gh.score,
+          gh."createdAt",
+          ROW_NUMBER() OVER (
+            PARTITION BY gh."userId"
+            ORDER BY gh.score DESC, gh."createdAt" ASC, gh.id ASC
+          ) AS row_num
+        FROM game_history gh
+        ${whereClause}
+      ) AS ranked
+      WHERE ranked.row_num = 1
+      ORDER BY ranked.score DESC, ranked."createdAt" ASC
+      LIMIT 10
+      `,
+      gameType ? [gameType] : [],
+    );
 
-        if (gameType) {
-          subQuery.where('gh2.gameType = :gameType');
-        }
-
-        // 복잡한 조인 대신 IN + 점수 일치 조건 사용
-        return `(gh.userId, gh.score) IN (${subQuery.getQuery()})`;
-      })
-      .orderBy('gh.score', 'DESC')
-      .addOrderBy('gh.createdAt', 'ASC')
-      .take(10);
-
-    if (gameType) {
-      query.andWhere('gh.gameType = :gameType', { gameType });
+    const rankingIds = ids.map((row) => row.id);
+    if (rankingIds.length === 0) {
+      return [];
     }
 
-    return query.getMany();
+    const histories = await this.gameHistoryRepository.find({
+      where: { id: In(rankingIds) },
+      relations: ['user'],
+    });
+
+    const historyById = new Map(
+      histories.map((history) => [history.id, history]),
+    );
+    return rankingIds
+      .map((id) => historyById.get(id))
+      .filter((history): history is GameHistory => Boolean(history));
   }
 
   /**
@@ -113,24 +126,11 @@ export class GameService {
    * @returns 등수 (1부터 시작)
    */
   async getUserRank(
-    userId: string,
+    _userId: string,
     score: number,
     gameType: GameType,
     dateRange?: { start: Date; end: Date },
   ): Promise<number> {
-    // 각 유저의 최고 점수 중 현재 점수보다 높은 유저 수를 계산
-    const query = this.gameHistoryRepository
-      .createQueryBuilder('gh')
-      .select('COUNT(DISTINCT gh.userId)', 'count')
-      .where('gh.gameType = :gameType', { gameType });
-
-    if (dateRange) {
-      query.andWhere('gh.createdAt BETWEEN :start AND :end', {
-        start: dateRange.start,
-        end: dateRange.end,
-      });
-    }
-
     // 유저별 최고 점수가 현재 점수보다 높은 경우만 카운트
     // 서브쿼리로 각 유저의 최고 점수 계산 후 비교
     const result = await this.gameHistoryRepository.query(

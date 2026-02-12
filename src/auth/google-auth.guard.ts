@@ -34,8 +34,17 @@ export class GoogleAuthGuard implements CanActivate {
       throw new UnauthorizedException(ErrorMessage.AUTH.NO_TOKEN);
     }
 
-    // 개발 환경 우회 로직 (테스트용)
-    if (process.env.NODE_ENV !== 'production' && token === 'dev-token') {
+    // 개발 환경 인증 우회 로직 (명시적으로 활성화된 경우에만 허용)
+    const isNonProduction = process.env.NODE_ENV !== 'production';
+    const isDevBypassEnabled = process.env.ENABLE_DEV_AUTH_BYPASS === 'true';
+    const devAuthToken = process.env.DEV_AUTH_TOKEN;
+
+    if (
+      isNonProduction &&
+      isDevBypassEnabled &&
+      devAuthToken &&
+      token === devAuthToken
+    ) {
       // 더미 유저 생성 또는 조회
       const devUserId = 'dev-user-id';
       let user = await this.userRepository.findOne({
@@ -57,10 +66,15 @@ export class GoogleAuthGuard implements CanActivate {
     }
 
     try {
-      // 구글 클라이언트를 사용하여 토큰 검증
+      const googleClientId = process.env.GOOGLE_CLIENT_ID;
+      if (!googleClientId) {
+        throw new UnauthorizedException(ErrorMessage.AUTH.INVALID_TOKEN);
+      }
+
+      // 구글 클라이언트를 사용하여 토큰 검증 (audience 강제)
       const ticket = await this.client.verifyIdToken({
         idToken: token,
-        // audience: process.env.GOOGLE_CLIENT_ID, // 생략 시 모든 클라이언트 ID 허용 (주의)
+        audience: googleClientId,
       });
       const payload = ticket.getPayload();
 

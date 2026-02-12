@@ -52,6 +52,22 @@ VSCode와 유사한 웹 IDE 경험을 제공하기 위한 서버 측 로직과 A
 $ npm install
 ```
 
+## Environment Variables
+
+`.env` 파일에 최소한 아래 값을 설정해야 합니다.
+
+```env
+GOOGLE_CLIENT_ID=<google-oauth-client-id>
+DB_SYNCHRONIZE=false
+```
+
+개발 환경에서만 인증 우회를 쓸 경우:
+
+```env
+ENABLE_DEV_AUTH_BYPASS=true
+DEV_AUTH_TOKEN=<local-dev-token>
+```
+
 ## Compile and run the project
 
 ```bash

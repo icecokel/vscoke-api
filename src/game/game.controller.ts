@@ -7,6 +7,7 @@ import {
   Req,
   Query,
   Param,
+  ParseEnumPipe,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import {
@@ -140,7 +141,10 @@ export class GameController {
    */
   @Get('ranking')
   @ApiOperation({ summary: '게임별 Top 10 랭킹 조회' })
-  async getRanking(@Query('gameType') gameType?: GameType) {
+  async getRanking(
+    @Query('gameType', new ParseEnumPipe(GameType, { optional: true }))
+    gameType?: GameType,
+  ) {
     return this.gameService.getRanking(gameType);
   }
 

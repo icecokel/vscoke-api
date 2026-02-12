@@ -24,16 +24,25 @@ import { winstonConfig } from './common/utils/winston.config';
     // 데이터베이스 연결 설정 (TypeORM)
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: configService.get<number>('DB_PORT', 5432),
-        username: configService.get<string>('DB_USERNAME', 'postgres'),
-        password: configService.get<string>('DB_PASSWORD', 'postgres'),
-        database: configService.get<string>('DB_DATABASE', 'vscoke'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // 주의: 운영 환경에서는 false로 설정 권장
-      }),
+      useFactory: (configService: ConfigService) => {
+        const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+        const dbSynchronize = configService.get<string>('DB_SYNCHRONIZE');
+        const synchronize =
+          dbSynchronize !== undefined
+            ? dbSynchronize === 'true'
+            : nodeEnv !== 'production';
+
+        return {
+          type: 'postgres',
+          host: configService.get<string>('DB_HOST', 'localhost'),
+          port: configService.get<number>('DB_PORT', 5432),
+          username: configService.get<string>('DB_USERNAME', 'postgres'),
+          password: configService.get<string>('DB_PASSWORD', 'postgres'),
+          database: configService.get<string>('DB_DATABASE', 'vscoke'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize,
+        };
+      },
       inject: [ConfigService],
     }),
     // 기능별 모듈

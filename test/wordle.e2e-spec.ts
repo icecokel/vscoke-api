@@ -1,16 +1,31 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
-import { AppModule } from './../src/app.module';
+import request from 'supertest';
+import { WordleController } from './../src/wordle/wordle.controller';
+import { WordleService } from './../src/wordle/wordle.service';
+
+const mockWordleService = () => ({
+  getRandomWord: jest.fn(),
+  getWordCount: jest.fn(),
+  checkWordExists: jest.fn((word: string) => word === 'apple'),
+});
 
 describe('WordleController (e2e)', () => {
   let app: INestApplication;
+  let service: ReturnType<typeof mockWordleService>;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      controllers: [WordleController],
+      providers: [
+        {
+          provide: WordleService,
+          useFactory: mockWordleService,
+        },
+      ],
     }).compile();
 
+    service = moduleFixture.get(WordleService);
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
       new ValidationPipe({
@@ -23,10 +38,13 @@ describe('WordleController (e2e)', () => {
   });
 
   afterEach(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it('/wordle/check (POST) - valid word', () => {
+    service.checkWordExists.mockResolvedValueOnce(true);
     return request(app.getHttpServer())
       .post('/wordle/check')
       .send({ word: 'apple' })
@@ -38,6 +56,7 @@ describe('WordleController (e2e)', () => {
   });
 
   it('/wordle/check (POST) - invalid word (not in db)', () => {
+    service.checkWordExists.mockResolvedValueOnce(false);
     return request(app.getHttpServer())
       .post('/wordle/check')
       .send({ word: 'korea' })

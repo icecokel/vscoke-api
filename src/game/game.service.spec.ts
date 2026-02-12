@@ -90,15 +90,8 @@ describe('GameService', () => {
       const mockUser1 = { id: 'user1', firstName: '홍길', lastName: '동' };
       const mockUser2 = { id: 'user2', firstName: '김철', lastName: '수' };
 
+      repository.query.mockResolvedValue([{ id: '1' }, { id: '2' }]);
       const mockRankings = [
-        {
-          id: '1',
-          score: 200,
-          gameType: GameType.SKY_DROP,
-          userId: 'user1',
-          user: mockUser1,
-          createdAt: new Date('2024-01-01'),
-        },
         {
           id: '2',
           score: 150,
@@ -107,20 +100,29 @@ describe('GameService', () => {
           user: mockUser2,
           createdAt: new Date('2024-01-02'),
         },
+        {
+          id: '1',
+          score: 200,
+          gameType: GameType.SKY_DROP,
+          userId: 'user1',
+          user: mockUser1,
+          createdAt: new Date('2024-01-01'),
+        },
       ];
-
-      mockQueryBuilder.getMany.mockResolvedValue(mockRankings);
+      repository.find.mockResolvedValue(mockRankings as any);
 
       const result = await service.getRanking();
 
-      expect(repository.createQueryBuilder).toHaveBeenCalled();
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('gh.score', 'DESC');
-      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith(
-        'gh.createdAt',
-        'ASC',
+      expect(repository.query).toHaveBeenCalledWith(
+        expect.stringContaining('ROW_NUMBER()'),
+        [],
       );
-      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
-      expect(result).toEqual(mockRankings);
+      expect(repository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relations: ['user'],
+        }),
+      );
+      expect(result.map((row) => row.id)).toEqual(['1', '2']);
       expect(result).toHaveLength(2);
     });
 
@@ -137,17 +139,25 @@ describe('GameService', () => {
         },
       ];
 
-      mockQueryBuilder.getMany.mockResolvedValue(mockRankings);
+      repository.query.mockResolvedValue([{ id: '1' }]);
+      repository.find.mockResolvedValue(mockRankings as any);
 
       const result = await service.getRanking(GameType.SKY_DROP);
 
-      expect(repository.createQueryBuilder).toHaveBeenCalled();
-      expect(mockQueryBuilder.where).toHaveBeenCalled(); // 함수가 전달되므로 호출 여부만 확인
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'gh.gameType = :gameType',
-        { gameType: GameType.SKY_DROP },
+      expect(repository.query).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE gh."gameType" = $1'),
+        [GameType.SKY_DROP],
       );
       expect(result).toEqual(mockRankings);
+    });
+
+    it('랭킹 대상이 없으면 빈 배열을 반환해야 함', async () => {
+      repository.query.mockResolvedValue([]);
+
+      const result = await service.getRanking();
+
+      expect(result).toEqual([]);
+      expect(repository.find).not.toHaveBeenCalled();
     });
   });
 
