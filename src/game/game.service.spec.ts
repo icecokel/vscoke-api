@@ -86,7 +86,7 @@ describe('GameService', () => {
   });
 
   describe('getRanking', () => {
-    it('유저별 최고 점수만 반환해야 함 (gameType 필터 없음)', async () => {
+    it('유저별 최고 점수만 반환해야 함 (gameType 필터 있음)', async () => {
       const mockUser1 = { id: 'user1', firstName: '홍길', lastName: '동' };
       const mockUser2 = { id: 'user2', firstName: '김철', lastName: '수' };
 
@@ -111,11 +111,11 @@ describe('GameService', () => {
       ];
       repository.find.mockResolvedValue(mockRankings as any);
 
-      const result = await service.getRanking();
+      const result = await service.getRanking(GameType.SKY_DROP);
 
       expect(repository.query).toHaveBeenCalledWith(
-        expect.stringContaining('ROW_NUMBER()'),
-        [],
+        expect.stringContaining('WHERE gh."gameType" = $1'),
+        [GameType.SKY_DROP],
       );
       expect(repository.find).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -154,7 +154,7 @@ describe('GameService', () => {
     it('랭킹 대상이 없으면 빈 배열을 반환해야 함', async () => {
       repository.query.mockResolvedValue([]);
 
-      const result = await service.getRanking();
+      const result = await service.getRanking(GameType.SKY_DROP);
 
       expect(result).toEqual([]);
       expect(repository.find).not.toHaveBeenCalled();

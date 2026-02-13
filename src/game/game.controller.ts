@@ -15,6 +15,7 @@ import {
   ApiTags,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { GameService } from './game.service';
 import { CreateGameHistoryDto } from './dto/create-game-history.dto';
@@ -141,9 +142,15 @@ export class GameController {
    */
   @Get('ranking')
   @ApiOperation({ summary: '게임별 Top 10 랭킹 조회' })
+  @ApiQuery({
+    name: 'gameType',
+    required: true,
+    enum: GameType,
+    enumName: 'GameType',
+    description: '조회할 게임 타입',
+  })
   async getRanking(
-    @Query('gameType', new ParseEnumPipe(GameType, { optional: true }))
-    gameType?: GameType,
+    @Query('gameType', new ParseEnumPipe(GameType)) gameType: GameType,
   ) {
     return this.gameService.getRanking(gameType);
   }

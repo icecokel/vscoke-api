@@ -178,13 +178,13 @@ describe('GameController', () => {
   });
 
   describe('getRanking', () => {
-    it('should return ranking list without gameType', async () => {
+    it('should return ranking list for required gameType', async () => {
       const expectedResult = [{ score: 100, gameType: GameType.SKY_DROP }];
       service.getRanking.mockResolvedValue(expectedResult);
 
-      const result = await controller.getRanking();
+      const result = await controller.getRanking(GameType.SKY_DROP);
 
-      expect(service.getRanking).toHaveBeenCalledWith(undefined);
+      expect(service.getRanking).toHaveBeenCalledWith(GameType.SKY_DROP);
       expect(result).toEqual(expectedResult);
     });
 
@@ -203,7 +203,7 @@ describe('GameController', () => {
       service.getRanking.mockRejectedValue(
         new InternalServerErrorException('DB Connection Fail'),
       );
-      await expect(controller.getRanking()).rejects.toThrow(
+      await expect(controller.getRanking(GameType.SKY_DROP)).rejects.toThrow(
         InternalServerErrorException,
       );
     });

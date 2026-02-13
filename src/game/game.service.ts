@@ -58,9 +58,8 @@ export class GameService {
   /**
    * 게임별 랭킹 목록을 조회함 (유저별 최고 점수 기준 Top 10)
    */
-  async getRanking(gameType?: GameType): Promise<GameHistory[]> {
+  async getRanking(gameType: GameType): Promise<GameHistory[]> {
     // 유저별 최고 점수 1건만 추린 뒤 전체 상위 10건을 구함
-    const whereClause = gameType ? 'WHERE gh."gameType" = $1' : '';
     const ids: Array<{ id: string }> = await this.gameHistoryRepository.query(
       `
       SELECT ranked.id
@@ -75,13 +74,13 @@ export class GameService {
             ORDER BY gh.score DESC, gh."createdAt" ASC, gh.id ASC
           ) AS row_num
         FROM game_history gh
-        ${whereClause}
+        WHERE gh."gameType" = $1
       ) AS ranked
       WHERE ranked.row_num = 1
       ORDER BY ranked.score DESC, ranked."createdAt" ASC
       LIMIT 10
       `,
-      gameType ? [gameType] : [],
+      [gameType],
     );
 
     const rankingIds = ids.map((row) => row.id);
