@@ -8,6 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/utils/winston.config';
+import { getCorsOptions } from './common/utils/cors.util';
 
 /**
  * 애플리케이션 진입점 함수
@@ -18,13 +19,7 @@ async function bootstrap() {
     logger: WinstonModule.createLogger(winstonConfig),
   });
 
-  // CORS 설정: 환경 변수에서 허용된 오리진 목록을 가져옴
-  const corsOrigins = process.env.CORS_ORIGINS?.split(',') || [];
-
-  app.enableCors({
-    origin: corsOrigins.length > 0 ? corsOrigins : false,
-    credentials: true,
-  });
+  app.enableCors(getCorsOptions(process.env.CORS_ORIGINS));
 
   // Swagger 문서 설정
   const config = new DocumentBuilder()
