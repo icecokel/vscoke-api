@@ -2,7 +2,9 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
+  Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Post,
   Query,
 } from '@nestjs/common';
@@ -30,5 +32,14 @@ export class GeekNewsController {
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ): Promise<GeekNewsArticleResponseDto[]> {
     return this.geekNewsService.getLatestArticles(limit);
+  }
+
+  @Get('articles/:id')
+  @ApiOperation({ summary: '저장된 긱뉴스 번역 결과 상세 조회' })
+  @ApiOkResponse({ type: GeekNewsArticleResponseDto })
+  async getArticleById(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<GeekNewsArticleResponseDto> {
+    return this.geekNewsService.getArticleById(id);
   }
 }

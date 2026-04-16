@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -36,6 +36,18 @@ export class GeekNewsService {
     });
 
     return articles.map((article) => this.toArticleRecord(article));
+  }
+
+  async getArticleById(id: string): Promise<GeekNewsArticleRecord> {
+    const article = await this.geekNewsArticleRepository.findOne({
+      where: { id },
+    });
+
+    if (!article) {
+      throw new NotFoundException('GeekNews article not found');
+    }
+
+    return this.toArticleRecord(article);
   }
 
   async syncLatestTopics(): Promise<GeekNewsSyncResult> {

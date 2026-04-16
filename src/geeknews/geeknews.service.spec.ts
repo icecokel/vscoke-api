@@ -9,6 +9,7 @@ import { GeekNewsTopicDetail, GeekNewsTopicSummary } from './geeknews.types';
 
 const mockGeekNewsArticleRepository = () => ({
   find: jest.fn(),
+  findOne: jest.fn(),
   create: jest.fn((entity: Partial<GeekNewsArticle>) => entity),
   save: jest.fn(),
 });
@@ -177,6 +178,34 @@ describe('GeekNewsService', () => {
     expect(result.updatedTopics).toBe(1);
     expect(result.skippedTopics).toBe(1);
   });
+
+  it('id로 저장된 긱뉴스 글 상세를 조회해야 함', async () => {
+    const article = createArticleEntity();
+    repository.findOne.mockResolvedValue(article);
+
+    const result = await service.getArticleById(article.id);
+
+    expect(repository.findOne).toHaveBeenCalledWith({
+      where: { id: article.id },
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: article.id,
+        title: article.title,
+        content: article.content,
+        translatedTitle: article.translatedTitle,
+        translatedContent: article.translatedContent,
+      }),
+    );
+  });
+
+  it('id에 해당하는 긱뉴스 글이 없으면 NotFoundException을 던져야 함', async () => {
+    repository.findOne.mockResolvedValue(null);
+
+    await expect(service.getArticleById('missing-id')).rejects.toThrow(
+      'GeekNews article not found',
+    );
+  });
 });
 
 function createTopicSummary(): GeekNewsTopicSummary {
@@ -199,5 +228,33 @@ function createTopicDetail(topic: GeekNewsTopicSummary): GeekNewsTopicDetail {
     ...topic,
     content: '상세 본문',
     postedAt: new Date('2026-04-14T02:11:43.000Z'),
+  };
+}
+
+function createArticleEntity(): GeekNewsArticle {
+  return {
+    id: '411b3333-a8b1-414b-bd60-9f538a885614',
+    sourceTopicId: 28546,
+    topicUrl: 'https://news.hada.io/topic?id=28546',
+    sourceUrl: 'https://news.hada.io/topic?id=28546',
+    title: '원문 제목',
+    content: '원문 본문',
+    translatedTitle: 'Translated Title',
+    translatedContent: 'Translated Content',
+    author: 'brainer',
+    points: 1,
+    commentCount: 3,
+    rank: 1,
+    listedAtText: '1시간전',
+    postedAt: new Date('2026-04-15T03:45:39.000Z'),
+    sourceLanguage: 'ko',
+    translatedLanguage: 'en',
+    translationStatus: 'translated',
+    translationProvider: 'gemini',
+    translationModel: 'gemini-2.5-flash',
+    translationError: null,
+    translatedAt: new Date('2026-04-15T04:22:06.419Z'),
+    createdAt: new Date('2026-04-15T04:22:07.585Z'),
+    updatedAt: new Date('2026-04-15T04:22:07.585Z'),
   };
 }
