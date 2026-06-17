@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { GameModule } from './game/game.module';
 import { GeekNewsModule } from './geeknews/geeknews.module';
 import { WordleModule } from './wordle/wordle.module';
+import { EspressoModule } from './espresso/espresso.module';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/utils/winston.config';
 
@@ -53,6 +54,7 @@ import { winstonConfig } from './common/utils/winston.config';
     GameModule,
     GeekNewsModule,
     WordleModule,
+    EspressoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
